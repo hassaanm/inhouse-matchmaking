@@ -1,20 +1,29 @@
 import requests
 import trueskill
 import itertools
+from sets import Set
 
-# The 10 players that are playing in the game.
-players = [
-    'gaR',
-    'all3nvan',
-    'edzwoo',
-    'idontcareeee',
-    'dat hass',
-    'Ngoskills',
-    'cerealcereal',
-    'CoolCoachDan',
-    'Arata Y',
-    'bakarich',
-]
+# Roles.
+top = "Top"
+jng = "Jungle"
+mid = "Mid"
+adc = "ADC"
+sup = "Support"
+
+# The 10 players that are playing in the game and their roles.
+player_map = {
+    'gaR': Set([mid, top]),
+    'all3nvan': Set([mid, adc, sup]),
+    'edzwoo': Set([mid, adc, sup]),
+    'idontcareeee': Set([mid, adc, jng, sup]),
+    'dat hass': Set([top, sup]),
+    'Ngoskills': Set([mid, adc, jng, sup]),
+    'cerealcereal': Set([top, jng]),
+    'CoolCoachDan': Set([top, sup, jng]),
+    'Arata Y': Set([jng, top, adc]),
+    'bakarich': Set([mid, sup, jng]),
+}
+players = player_map.keys()
 
 # Pull match data.
 url = 'https://league-tracker-api-stage.herokuapp.com/single_page_app_initializations'
@@ -79,7 +88,20 @@ for left_team in itertools.combinations(all_player_ids, 5):
 
 qualities.sort(key=lambda t: t[0], reverse=True)
 
-truncated = qualities[0:5]
+# Filter out teams without enough role diversity.
+def is_team_balanced(player_map, players, roles=Set(), spot=0):
+    if spot == len(players):
+        return len(roles) == len(players)
+    
+    for role in player_map[players[spot]]:
+        if is_team_balanced(player_map, players, roles | Set([role]), spot+1):
+            return True
+        
+    return False
+
+balanced_teams = filter(lambda q: is_team_balanced(player_map, q[1]) and is_team_balanced(player_map, q[2]), qualities)
+
+truncated = balanced_teams[0:5]
 for q in truncated:
     print q[0]
     print q[1]
